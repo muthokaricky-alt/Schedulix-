@@ -4,7 +4,7 @@ A Streamlit web app for a 2nd-year OS lab exercise: upload an Excel file of rand
 generated processes and compare **FCFS**, **SJF**, **SRTF** (3 tie-break rules), and
 **Round Robin**, with a Gantt chart and comparison table for each.
 
-Repo: [github.com/muthokaricky-alt/Schedulix-](https://github.com/muthokaricky-alt/Schedulix-)
+
 
 ## Setup
 
@@ -88,15 +88,5 @@ processes run in well under a second. Preemptive algorithms (SRTF, Round Robin) 
 re-evaluate scheduling decisions at arrivals and completions, using a heap (SRTF) or
 FIFO queue (Round Robin) — not a per-time-unit loop.
 
-## Pushing to GitHub
 
-If the repo above is already created and empty:
-
-```bash
-git init
-git add .
-git commit -m "Initial commit: Schedulix CPU scheduling simulator"
-git branch -M main
-git remote add origin https://github.com/muthokaricky-alt/Schedulix-.git
-git push -u origin main
 ```
