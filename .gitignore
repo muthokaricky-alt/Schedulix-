@@ -1,0 +1,20 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OS / editor cruft
+.DS_Store
+.idea/
+.vscode/
+
+# Generated / large data (comment out if you want sample_data.xlsx tracked)
+# sample_data.xlsx
