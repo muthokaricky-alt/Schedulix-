@@ -28,30 +28,67 @@ class Process:
 
 
 def _load_processes(df: pd.DataFrame) -> list[Process]:
-    """Normalize an uploaded DataFrame into a list of Process objects."""
+    """Normalize an uploaded DataFrame into a list of Process objects.
+
+    Only Arrival Time and Burst Time are mandatory. Process ID and Priority
+    are optional: a missing ID is auto-generated (P1, P2, ...) and a missing
+    Priority defaults to 0 for every row (SRTF priority tie-breaks then
+    behave like the FCFS tie-break, since every process ties on priority).
+    """
+    if len(df) == 0:
+        raise ValueError("The uploaded file has no rows.")
+
     cols = {c.lower().strip(): c for c in df.columns}
 
-    def pick(*names):
+    def pick(*names, required=True):
         for n in names:
             if n in cols:
                 return cols[n]
-        raise ValueError(f"Could not find a column for any of {names}. "
-                          f"Found columns: {list(df.columns)}")
+        if required:
+            raise ValueError(
+                f"Could not find a required column for any of {names}. "
+                f"Found columns: {list(df.columns)}"
+            )
+        return None
 
-    pid_col = pick("process", "process id", "processid", "pid", "id")
+    pid_col = pick("process", "process id", "processid", "pid", "id", required=False)
     at_col = pick("arrival time", "arrival", "at")
     bt_col = pick("burst time", "burst", "bt")
-    pr_col = pick("priority", "pr")
+    pr_col = pick("priority", "pr", required=False)
+
+    for label, col in (("Arrival Time", at_col), ("Burst Time", bt_col)):
+        if not pd.to_numeric(df[col], errors="coerce").notna().all():
+            raise ValueError(f"'{col}' (mapped to {label}) contains non-numeric values.")
+
+    arrivals = pd.to_numeric(df[at_col], errors="raise")
+    bursts = pd.to_numeric(df[bt_col], errors="raise")
+    if (arrivals < 0).any():
+        raise ValueError("Arrival Time cannot be negative.")
+    if (bursts < 1).any():
+        raise ValueError("Burst Time must be at least 1 for every process.")
 
     procs = []
     for i, row in df.iterrows():
-        pid = str(row[pid_col]) if pd.notna(row[pid_col]) else f"P{i + 1}"
+        if pid_col is not None and pd.notna(row[pid_col]):
+            pid = str(row[pid_col])
+        else:
+            pid = f"P{i + 1}"
+        priority = int(row[pr_col]) if pr_col is not None and pd.notna(row[pr_col]) else 0
         procs.append(Process(
             pid=pid,
             arrival=int(row[at_col]),
             burst=int(row[bt_col]),
-            priority=int(row[pr_col]),
+            priority=priority,
         ))
+
+    pids = [p.pid for p in procs]
+    if len(set(pids)) != len(pids):
+        seen = {}
+        for p in procs:
+            seen[p.pid] = seen.get(p.pid, 0) + 1
+            if seen[p.pid] > 1:
+                p.pid = f"{p.pid}_{seen[p.pid]}"
+
     return procs
 
 
@@ -304,3 +341,17 @@ def run_all(df: pd.DataFrame, quantum: int = 4):
 
     comparison_df = pd.DataFrame(rows)
     return comparison_df, details
+
+
+def export_workbook(comparison_df: pd.DataFrame, details: dict) -> bytes:
+    """Build a single .xlsx workbook: a Summary sheet plus one sheet per algorithm."""
+    import io as _io
+    buf = _io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        comparison_df.to_excel(writer, sheet_name="Summary", index=False)
+        for name in ALGORITHMS:
+            result_df, _ = details[name]
+            # Excel sheet names are capped at 31 chars and can't contain some symbols
+            sheet_name = name.replace("(", "").replace(")", "")[:31]
+            result_df.to_excel(writer, sheet_name=sheet_name, index=False)
+    return buf.getvalue()
