@@ -116,4 +116,3 @@ Schedulix/
 └── README.md
 ```
 
-```
