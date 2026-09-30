@@ -116,15 +116,4 @@ Schedulix/
 └── README.md
 ```
 
-## Pushing to GitHub
-
-If the repo above already exists and is empty:
-
-```bash
-git init
-git add .
-git commit -m "Initial commit: Schedulix CPU scheduling simulator"
-git branch -M main
-git remote add origin https://github.com/muthokaricky-alt/Schedulix-.git
-git push -u origin main
 ```
